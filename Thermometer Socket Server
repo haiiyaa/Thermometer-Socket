@@ -1,0 +1,81 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.IO;
+
+namespace TermoMeterSocket
+{
+    class Server
+    {
+        
+        static void Main(string[] args)
+        {
+            new SimpleServer(5000); // laver en ny simpleserver og smider 5000 ind som parameter input
+        }
+        public class SimpleServer
+        {
+            TcpListener listener; // laver tcplistener på klasse niveau
+            static List<ClientData> _clients = new List<ClientData>(); // liste til at kunne sende til alle klienter.
+            StreamWriter writer;
+            public SimpleServer(int port)
+            {
+
+                IPAddress ip = IPAddress.Parse("127.0.0.1"); //sætter ip addresse til at være 127.0.0.1
+                // Laver en TCPListener på ip-addressen og porten - Kan lytte efter TCP pakker
+                listener = new TcpListener(ip, port); // lytter efter tcp pakker på ip og port
+                listener.Start(); // starter min listener så jeg kan lytte efter tcp pakker
+                Console.WriteLine("Serveren er oppe og køre..."); // serveren er oppe og kører nu den er begyndt at lytte efter tcp pakker
+                Thread b = new Thread(AcceptClient); // laver en ny tråd acceptere klienters forbindelse
+                b.Start(); // starter tråden
+                Thread a = new Thread(TemperatureGenerator); // laver en tråd der skal køre og lave random temperature
+                a.Start(); // starter tråden
+            }
+
+            public void AcceptClient()
+            {
+                while (true)
+                {
+                    
+
+                    Console.WriteLine("Venter på ny klient");
+                    TcpClient client = listener.AcceptTcpClient(); // Block-wait 
+                    ClientData c = new ClientData(client); // smider min client i min clientdata constructor
+                    _clients.Add(c); // tilføjer klient til listen
+                    
+                    Console.WriteLine("Klient er forbundet til serveren!");
+                    
+                    
+                }
+            }
+            public void TemperatureGenerator()
+            {
+                Random rnd = new Random(); // lave rrandom numre
+                int temperature = 0; // sætter min temperatur til 0
+
+                while (true)
+                {
+
+                    Thread.Sleep(1000); // giver den sleep så den ikke konstant sender temperature
+                    temperature = rnd.Next(-20, 120); // min temperature er lig med random nummer mellem -20 og 120
+                    BroadCast(temperature); // sender min integer temperatur ned i min broadcast
+                    
+                }
+            }
+            public void BroadCast(int temperatur)
+            {
+                foreach (ClientData client in _clients) // for hver klient i listen af klienter
+                {
+                    client.Writer(temperatur.ToString()); // skriv til alle klienter
+                }
+            }
+            public static void RemoveClient(ClientData client)
+            {
+                _clients.Remove(client); // fjerner klient fra listen. ellers crasher programmet hvis en klient lukker. den prøver at sende til klient der ikke eksistere
+            }
+        }
+    }
+}
