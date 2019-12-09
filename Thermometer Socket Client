@@ -1,0 +1,52 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.IO;
+
+namespace TermoMeterClient
+{
+    class Client
+    {
+        static void Main(string[] args)
+        {
+            new SimpleClient("127.0.0.1", 5000); // laver en ny instans af klassen simpleclient hvor med en ip adresse og en port
+        }
+        class SimpleClient
+        {
+            StreamReader reader; // laves på klasse niveau da både konstruktor og reader metoden skal kunne tilgå samme
+            public SimpleClient(string address, int port)
+            {
+                
+                while (true)
+                {
+                    TcpClient serverConnection = new TcpClient(address, port); // laver en ny forbindelse med de parameter den får fra main tråden
+                    reader = new StreamReader(serverConnection.GetStream()); // sørger for at åbne for at der kan modtages information fra server
+                    Thread a = new Thread(ReaderThread); // laver en ny tråd som skal læse heletiden
+                    a.Start(); // starter tråden
+
+
+                    while (true) // Reader kalder min readerthread metode
+                    {
+                        ReaderThread();
+
+                    }
+                    reader.Close(); //lukker reader
+                    serverConnection.Close(); // lukker forbindelse
+
+                }
+            }
+            public void ReaderThread()
+            {
+                while (true) // kører heletiden
+                {
+                    string text = reader.ReadLine(); // tager besked jeg får fra serveren og laver det om til streng
+                    Console.WriteLine(text); // læser den besked jeg får fra serveren i klient consol
+                }
+            }
+        }
+    }
+}
