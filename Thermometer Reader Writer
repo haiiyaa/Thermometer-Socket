@@ -1,0 +1,64 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+using System.IO;
+
+
+namespace TermoMeterSocket
+{
+    class ClientData
+    {
+        bool running = true; // bruges til at lukke stoppe writer til klient så den ikke bliver ved med at sende til en klient der har lukket programmet
+
+        StreamWriter writer;
+        StreamReader reader;
+        public ClientData(TcpClient client)
+        {
+            
+            writer = new StreamWriter(client.GetStream()); // åbner min writer så jeg kan skrive til klient
+            reader = new StreamReader(client.GetStream()); //åbner reader så jeg kan læse fra klient
+            Thread a = new Thread(Reader); // laver tråd med metoden reader til at læse
+            a.Start(); // starter tråd til at læse
+        }
+        public void Writer(string s)
+        {
+            
+                try
+                {
+                    writer.WriteLine(s); // modtager min temperatur som streng og sender den med min writer
+                    writer.Flush(); // flusher
+
+                }
+                catch
+                {
+                    Server.SimpleServer.RemoveClient(this); // hvis klient logger af gøres bruge af removeclient metoden
+                    running = false; // går ud af min try catch så den ikke skriver til klienten mere
+                }
+            
+            
+        }
+
+        public void Reader()
+        {
+            while (running == true)
+            {
+                try
+                {
+                    reader.ReadLine();
+
+                }
+                catch
+                {
+                    Server.SimpleServer.RemoveClient(this);
+                    running = false;
+                }
+            }
+            
+
+        }
+    }
+}
